@@ -1,0 +1,39 @@
+name: DevSecOps
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    name: Build Breaker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Instalar dependencias y herramientas
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+      - name: SAST con Bandit
+        run: python -m bandit -r app.py -ll
+      - name: SCA con pip-audit
+        if: ${{ !cancelled() }}
+        run: python -m pip_audit --requirement requirements.txt --no-deps --disable-pip
+      - name: Pruebas funcionales
+        run: python -m unittest discover -s tests -v
+      - name: Generar y validar SBOM
+        run: |
+          cyclonedx-py requirements requirements.txt --output-reproducible --output-format JSON --validate -o sbom.ci.json
+          python -m json.tool sbom.ci.json > /dev/null
+      - uses: actions/upload-artifact@v6
+        with:
+          name: sbom-cyclonedx
+          path: sbom.ci.json
+          if-no-files-found: error

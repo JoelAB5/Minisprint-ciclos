@@ -1,0 +1,8 @@
+.venv/
+.env
+*.db
+*.db-*
+__pycache__/
+*.py[cod]
+.demo-wheels/
+.demo-runtime/
