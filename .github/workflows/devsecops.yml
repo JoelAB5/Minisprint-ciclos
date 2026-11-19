@@ -17,15 +17,19 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - name: Instalar dependencias y herramientas
-        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+      - name: Instalar herramientas de seguridad
+        run: python -m pip install -r requirements-dev.txt
+      - name: Instalar dependencias de la API
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -r requirements.txt
       - name: SAST con Bandit
         run: python -m bandit -r app.py -ll
       - name: SCA con pip-audit
         if: ${{ !cancelled() }}
         run: python -m pip_audit --requirement requirements.txt --no-deps --disable-pip
       - name: Pruebas funcionales
-        run: python -m unittest discover -s tests -v
+        run: .venv/bin/python -m unittest discover -s tests -v
       - name: Generar y validar SBOM
         run: |
           cyclonedx-py requirements requirements.txt --output-reproducible --output-format JSON --validate -o sbom.ci.json
